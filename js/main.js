@@ -1,3 +1,4 @@
+var coinPickupCount = 0;
 function init(){
     
 }
@@ -19,13 +20,22 @@ function preload(){
     game.load.image('invisible-wall', 'images/invisible_wall.png');
     game.load.image('icon-coin', 'images/power+2.png');
     game.load.image('font-numbers', 'images/numbers.png');
+    game.load.image('icon:coin', 'images/power+2.png');
+    game.load.image('font:numbers', 'images/numbers.png');
+    game.load.spritesheet('door', 'images/door.png', 42, 66);
+    game.load.image('key', 'images/dragonkey.png');
+    game.load.audio('sfx:key', 'audio/key.wav');
+    game.load.audio('sfx:door', 'audio/door.wav');
 };
 function create(){
-    coinIcon = game.make.image(40, 0, 'icon-coin');
     game.add.image(0, 0, 'background');
     sfxJump = game.add.audio('sfx:jump');
     sfxCoin = game.add.audio('sfx:coin');
     sfxStomp = game.add.audio('sfx:stomp');
+    sfxKey = game.add.audio('sfx:key');
+    sfxDoor = game.add.audio('sfx:door');
+    coinIcon = game.make.image(40, 0, 'icon:coin');
+
     loadLevel(this.game.cache.getJSON('level:1'));
     leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
@@ -33,11 +43,17 @@ function create(){
     upKey.onDown.add(function(){
         jump();
     });
-     hud = game.add.group();
+
+    //Adding coin icon
+    hud = game.add.group();
     hud.add(coinIcon);
     hud.position.set(10, 10);
-    game.add.retroFont('font:numbers', 20, 26, NUMBERS_STR, 6);
 
+    var NUMBERS_STR = '0123456789X ';
+    coinFont = game.add.retroFont('font:numbers', 20, 26, NUMBERS_STR, 6);
+    var coinScoreImg = game.make.image(100 + coinIcon.width, coinIcon.height / 2, coinFont);
+    coinScoreImg.anchor.set(1, 0.5);
+    hud.add(coinScoreImg);
 }
 
 function update(){
@@ -52,10 +68,16 @@ function loadLevel(data) {
     coins = game.add.group();
     spiders = game.add.group();
     enemyWalls = game.add.group();
+    bgDecoration = game.add.group();
     enemyWalls.visible = false;
     data.platforms.forEach(spawnPlatform, this);
+    spawnDoor(data.door.x, data.door.y);
+    spawnKey(data.key.x, data.key.y);
     // spawn hero and enemies
+    
     spawnCharacters({hero: data.hero, spiders: data.spiders});  
+    spawnDoor(data.door.x, data.door.y);
+    spawnKey(data.key.x, data.key.y);
     // spawn important objects
     data.coins.forEach(spawnCoin, this);
     game.physics.arcade.gravity.y = 1200;
@@ -120,11 +142,11 @@ function handleCollisions(){
    game.physics.arcade.collide(spiders, enemyWalls);
    game.physics.arcade.overlap(hero, coins, onHeroVsCoin, null);
    game.physics.arcade.overlap(hero, spiders, onHeroVsEnemy, null);
+   game.physics.arcade.overlap(hero, key, onHeroVsKey, null, this)
 };
 
 function jump(){
     var canJump = hero.body.touching.down;
-    //Ensures hero is on the ground or on a platform
     if (canJump) {
         hero.body.velocity.y = -600;
         sfxJump.play();
@@ -141,13 +163,9 @@ function spawnCoin(coin) {
     sprite.body.allowGravity = false;
 };
 
-var coinPickupCount = 0;
-
 function onHeroVsCoin(hero, coin){
-    coinPickupCount++;
     sfxCoin.play();
     coin.kill();
-
 };
 
 function spawnEnemyWall(x, y, side){
@@ -201,6 +219,38 @@ function spawnSpider(){
     game.physics.enable(spider);
     spider.body.collideWorldBounds = true;
     spider.body.velocity.x = Spider.speed;
+}
+
+function onHeroVsCoin(hero, coin){
+    coinPickupCount++;
+    coin.kill();
+    coinFont.text = `x${coinPickupCount}`;
+}
+
+function spawnDoor(x, y){
+    door = bgDecoration.create(x, y, 'door');
+    door.anchor.setTo(0.5, 1);
+    game.physics.enable(door);
+    door.body.allowGravity = false;
+}
+
+function spawnKey(x, y){
+    key = bgDecoration.create(x, y, 'key');
+    key.anchor.set(0.5, 0.5);
+    game.physics.enable(key);
+    key.body.allowGravity = false;
+}
+
+function onHeroVsKey(hero, key){
+    sfxKey.play();
+    key.kill();
+
+    hasKey = true;
+}
+
+function onHeroVsDoor(hero, door){
+    sfxDoor.play();
+    game.state.restart();
 }
 
 //Create a game state
