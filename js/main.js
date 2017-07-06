@@ -1,4 +1,7 @@
 var coinPickupCount = 0;
+var hasKey = false;
+var level = 0;
+
 function init(){
     
 }
@@ -6,6 +9,8 @@ function init(){
 function preload(){
     game.load.image('background', 'images/backdrop(2).png');
     game.load.json('level:1', 'data/level01.json');
+    game.load.json('level:2', 'data/level02.json');
+    game.load.json('level:0', 'data/level00.json');
     game.load.image('ground', 'images/ground.png');
     game.load.image('grass:8x1', 'images/grass_8x1.png');
     game.load.image('grass:6x1', 'images/grass_6x1.png');
@@ -26,7 +31,9 @@ function preload(){
     game.load.image('key', 'images/dragonkey.png');
     game.load.audio('sfx:key', 'audio/key.wav');
     game.load.audio('sfx:door', 'audio/door.wav');
+    game.load.spritesheet('icon:key', 'images/dragonkey_icon.png', 34, 30);
 };
+
 function create(){
     game.add.image(0, 0, 'background');
     sfxJump = game.add.audio('sfx:jump');
@@ -34,9 +41,11 @@ function create(){
     sfxStomp = game.add.audio('sfx:stomp');
     sfxKey = game.add.audio('sfx:key');
     sfxDoor = game.add.audio('sfx:door');
+    keyIcon = game.make.image(0, 19, 'icon:key');
+    keyIcon.anchor.set(0, 0.5);
     coinIcon = game.make.image(40, 0, 'icon:coin');
-
-    loadLevel(this.game.cache.getJSON('level:1'));
+    //loadLevel(this.game.cache.getJSON('level:' + level));
+    loadLevel(this.game.cache.getJSON('level:2' ));
     leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
     upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -44,22 +53,26 @@ function create(){
         jump();
     });
 
-    //Adding coin icon
     hud = game.add.group();
     hud.add(coinIcon);
     hud.position.set(10, 10);
 
+    // ? - Declare a variable 'NUMBERS_STR' and set its value as string '0123456789X '
     var NUMBERS_STR = '0123456789X ';
     coinFont = game.add.retroFont('font:numbers', 20, 26, NUMBERS_STR, 6);
+
     var coinScoreImg = game.make.image(100 + coinIcon.width, coinIcon.height / 2, coinFont);
     coinScoreImg.anchor.set(1, 0.5);
+
     hud.add(coinScoreImg);
+    hud.add(keyIcon);
 }
 
 function update(){
     handleInput();
     handleCollisions();
     moveSpider();
+    keyIcon.frame = hasKey ? 1 : 0;
 }
 
 function loadLevel(data) {
@@ -71,10 +84,7 @@ function loadLevel(data) {
     bgDecoration = game.add.group();
     enemyWalls.visible = false;
     data.platforms.forEach(spawnPlatform, this);
-    spawnDoor(data.door.x, data.door.y);
-    spawnKey(data.key.x, data.key.y);
     // spawn hero and enemies
-    
     spawnCharacters({hero: data.hero, spiders: data.spiders});  
     spawnDoor(data.door.x, data.door.y);
     spawnKey(data.key.x, data.key.y);
@@ -142,11 +152,17 @@ function handleCollisions(){
    game.physics.arcade.collide(spiders, enemyWalls);
    game.physics.arcade.overlap(hero, coins, onHeroVsCoin, null);
    game.physics.arcade.overlap(hero, spiders, onHeroVsEnemy, null);
-   game.physics.arcade.overlap(hero, key, onHeroVsKey, null, this)
+   game.physics.arcade.overlap(hero, key, onHeroVsKey, null);
+   game.physics.arcade.overlap(hero, door, onHeroVsDoor,
+        // ignore if there is no key or the player is on air
+        function (hero, door) {
+            return hasKey && hero.body.touching.down;
+        });
 };
 
 function jump(){
     var canJump = hero.body.touching.down;
+    //Ensures hero is on the ground or on a platform
     if (canJump) {
         hero.body.velocity.y = -600;
         sfxJump.play();
@@ -244,12 +260,18 @@ function spawnKey(x, y){
 function onHeroVsKey(hero, key){
     sfxKey.play();
     key.kill();
-
     hasKey = true;
 }
 
 function onHeroVsDoor(hero, door){
     sfxDoor.play();
+    if (level === 0){
+        level = level + 1;
+    }
+    else {
+        level = 0;
+    }
+    hasKey = false;
     game.state.restart();
 }
 
