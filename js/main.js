@@ -11,6 +11,7 @@ function preload(){
     game.load.json('level:1', 'data/level01.json');
     game.load.json('level:2', 'data/level02.json');
     game.load.json('level:0', 'data/level00.json');
+    game.load.json('level:3', 'data/level03.json');
     game.load.image('ground', 'images/ground.png');
     game.load.image('grass:8x1', 'images/grass_8x1.png');
     game.load.image('grass:6x1', 'images/grass_6x1.png');
@@ -44,8 +45,7 @@ function create(){
     keyIcon = game.make.image(0, 19, 'icon:key');
     keyIcon.anchor.set(0, 0.5);
     coinIcon = game.make.image(40, 0, 'icon:coin');
-    //loadLevel(this.game.cache.getJSON('level:' + level));
-    loadLevel(this.game.cache.getJSON('level:2' ));
+    loadLevel(this.game.cache.getJSON('level:' + level));
     leftKey = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     rightKey = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
     upKey = game.input.keyboard.addKey(Phaser.Keyboard.UP);
@@ -266,6 +266,12 @@ function onHeroVsKey(hero, key){
 function onHeroVsDoor(hero, door){
     sfxDoor.play();
     if (level === 0){
+        level = level + 1;
+    }
+    else if(level === 1){
+        level = level + 1;
+    }
+    else if(level === 2){
         level = level + 1;
     }
     else {
